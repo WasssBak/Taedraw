@@ -319,8 +319,8 @@ function App() {
     <div
       className={`min-h-screen p-4 md:p-6 transition-colors duration-300 ${
         darkMode
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-          : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+          ? "bg-linear-to-br from-gray-900 via-gray-800 to-gray-900"
+          : "bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50"
       }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
@@ -332,34 +332,33 @@ function App() {
               : "bg-white border border-gray-100"
           }`}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div
-                className={`p-3 rounded-xl ${darkMode ? "bg-indigo-900/50" : "bg-indigo-100"}`}
+                className={`p-2 sm:p-3 rounded-xl ${darkMode ? "bg-indigo-900/50" : "bg-indigo-100"}`}
               >
                 <Users
-                  className={`w-8 h-8 ${darkMode ? "text-indigo-400" : "text-indigo-600"}`}
+                  className={`w-6 h-6 sm:w-8 sm:h-8 ${darkMode ? "text-indigo-400" : "text-indigo-600"}`}
                 />
               </div>
               <div>
                 <h1
-                  className={`text-3xl md:text-4xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}
+                  className={`text-2xl sm:text-3xl md:text-4xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}
                 >
                   {t.title}
                 </h1>
                 <p
-                  className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                  className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                 >
                   {t.subtitle}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className={`p-3 rounded-xl transition-all hover:scale-110 cursor-pointer ${
+                className={`flex-1 sm:flex-none p-2 sm:p-3 rounded-xl transition-all hover:scale-105 sm:hover:scale-110 cursor-pointer text-sm sm:text-base ${
                   darkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-white"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700"
@@ -372,30 +371,30 @@ function App() {
               </select>
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-3 rounded-xl transition-all hover:scale-110 ${
+                className={`p-2 sm:p-3 rounded-xl transition-all hover:scale-105 sm:hover:scale-110 ${
                   darkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-yellow-400"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
                 {darkMode ? (
-                  <Sun className="w-6 h-6" />
+                  <Sun className="w-5 h-5 sm:w-6 sm:h-6" />
                 ) : (
-                  <Moon className="w-6 h-6" />
+                  <Moon className="w-5 h-5 sm:w-6 sm:h-6" />
                 )}
               </button>
               <button
                 onClick={toggleFullscreen}
-                className={`p-3 rounded-xl transition-all hover:scale-110 ${
+                className={`p-2 sm:p-3 rounded-xl transition-all hover:scale-105 sm:hover:scale-110 ${
                   darkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-white"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
                 {isFullscreen ? (
-                  <Minimize className="w-6 h-6" />
+                  <Minimize className="w-5 h-5 sm:w-6 sm:h-6" />
                 ) : (
-                  <Maximize className="w-6 h-6" />
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                 )}
               </button>
             </div>
