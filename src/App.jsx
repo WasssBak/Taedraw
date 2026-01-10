@@ -190,17 +190,16 @@ function App() {
   const champion =
     bracket?.rounds[bracket.rounds.length - 1][0]?.winner || null;
 
-  // CONSTANTES DE MISE EN PAGE POUR L'ALIGNEMENT
   const MATCH_HEIGHT = 110; // Hauteur fixe d'une boîte de match
   const GAP_ROUND_0 = 32; // Espace entre les matchs au Tour 0
 
   return (
     <>
-      <section
+      <div
         className={`min-h-screen transition-colors duration-500 p-6 font-sans ${darkMode ? "bg-[#050a18] text-white" : "bg-slate-50 text-slate-900"}`}
         dir={language === "ar" ? "rtl" : "ltr"}
       >
-        <header className="max-w-7xl mx-auto flex justify-between items-center mb-12">
+        <header className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-y-6 gap-x-4 mb-12">
           <div className="flex items-center gap-4">
             <div
               className={`p-3 rounded-2xl border ${darkMode ? "bg-indigo-500/20 border-indigo-500/20 shadow-indigo-500/10" : "bg-indigo-500 text-white border-indigo-400"}`}
@@ -249,7 +248,7 @@ function App() {
         </header>
 
         {!bracket ? (
-          <div className="max-w-3xl mx-auto space-y-6">
+          <section className="max-w-3xl mx-auto space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div
                 className={`p-6 rounded-3xl border ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
@@ -305,9 +304,9 @@ function App() {
             >
               <Shuffle /> {t.generate}
             </button>
-          </div>
+          </section>
         ) : (
-          <div className="max-w-full overflow-x-auto pb-32 no-scrollbar">
+          <section className="max-w-full overflow-x-auto pb-32 no-scrollbar">
             <button
               onClick={() => setBracket(null)}
               className="flex items-center gap-2 text-[11px] font-black uppercase opacity-50 hover:opacity-100 mb-10 ml-4"
@@ -419,10 +418,9 @@ function App() {
                 </div>
               )}
             </div>
-          </div>
+          </section>
         )}
-      </section>
-      {/* Footer déplacé en dehors du tag section pour une structure correcte */}
+      </div>
       <footer
         className={`py-12 border-t transition-colors duration-500 ${darkMode ? "bg-[#050a18] border-slate-800 text-white" : "bg-slate-50 border-slate-200 text-slate-900"}`}
       >
