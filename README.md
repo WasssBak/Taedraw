@@ -1,156 +1,161 @@
-# Taedraw
+🏆 TAEDRAW – Tournament Draw Generator
 
-**Tournament Draw Generator**
+TAEDRAW is a modern, responsive web application built with Vite + React that allows users to easily generate, manage, and export tournament brackets.
+It supports multiple tournaments, multilingual UI, dark mode, fullscreen mode, and export options (PDF, CSV, XLS).
 
-A modern, multilingual tournament bracket generator built with React and Vite. Create professional tournament brackets with ease, featuring dark mode, fullscreen support, and intelligent finalist placement.
+✨ Features
 
-## Features
+⚡ Fast & Modern Stack – Built with Vite and React
 
-### 🌍 Multilingual Support
-- **French (FR)** - Français
-- **English (EN)** - English
-- **Spanish (ES)** - Español
-- **Arabic (AR)** - العربية (with RTL support)
+🏟️ Multiple Tournaments – Create, rename, switch, and delete tournaments
 
-### 🏆 Tournament Management
-- Support for tournament sizes: 4, 8, 16, 32, 64, and 128 participants
-- Automatic bracket generation with randomized seeding
-- Smart BYE handling for incomplete brackets
-- Click-to-advance winner selection
-- Real-time bracket progression
+🎲 Random Draw Generator – Automatically generates brackets
 
-### 🎯 Advanced Features
-- **Finalist Placement**: Pre-define two finalists who will be placed in opposite halves of the bracket
-- **Dark Mode**: Toggle between light and dark themes
-- **Fullscreen Mode**: Immersive tournament viewing experience
-- **Duplicate Detection**: Prevents duplicate participant names
-- **Input Validation**: Ensures proper tournament setup
+📊 Tournament Sizes – Supports 8, 16, 32, 64, and 128 players
 
-### 💎 Modern UI/UX
-- Responsive design for desktop and mobile
-- Smooth animations and transitions
-- Color-coded match states (pending, completed, winner)
-- Horizontal scrolling bracket view
-- Champion celebration display
+🏆 Finalist Seeding – Force two players into opposite sides of the bracket
 
-## Getting Started
+📂 Import Participants – Import from .txt or .csv files
 
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
+📤 Export Results
 
-### Installation
+PDF (print-friendly)
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/taedraw.git
+CSV
+
+XLS (Excel-compatible)
+
+🌍 Multilingual Support
+
+English 🇺🇸
+
+French 🇫🇷
+
+Spanish 🇪🇸
+
+Arabic 🇸🇦 (RTL supported)
+
+🌙 Dark / Light Mode
+
+🖥️ Fullscreen Mode
+
+💾 Local Storage Persistence
+
+📱 Responsive UI – Works on desktop and mobile
+
+🧩 Tech Stack
+
+Frontend: React
+
+Build Tool: Vite
+
+Styling: Tailwind CSS
+
+Icons: lucide-react
+
+State Management: React Hooks
+
+Persistence: LocalStorage
+
+🚀 Getting Started
+1️⃣ Clone the Repository
+git clone https://github.com/WasssBak/taedraw.git
 cd taedraw
-```
 
-2. Install dependencies:
-```bash
+2️⃣ Install Dependencies
 npm install
-```
 
-3. Start the development server:
-```bash
+3️⃣ Start Development Server
 npm run dev
-```
 
-4. Open your browser and navigate to `http://localhost:5173`
 
-### Building for Production
+The app will be available at:
 
-```bash
+http://localhost:5173
+
+🏗️ Build for Production
 npm run build
-```
 
-The built files will be in the `dist` directory.
 
-## Usage
+Preview the production build locally:
 
-### Creating a Tournament
+npm run preview
 
-1. **Select Tournament Size**: Choose from 4 to 128 participants (power of 2)
-2. **Add Participants**: Enter participant names, one per line
-3. **Optional - Set Finalists**: Specify two players who should only meet in the final
-4. **Generate**: Click "Generate tournament" to create the bracket
+📄 Importing Participants
 
-### Managing Matches
+Supported formats:
 
-- Click on a participant's name to declare them the winner
-- The bracket automatically advances winners to the next round
-- BYE matches are automatically resolved
-- Track progress through all rounds until a champion is crowned
+.txt
 
-### Customization
+.csv
 
-- **Language**: Select from the language dropdown (🇫🇷 🇬🇧 🇪🇸 🇸🇦)
-- **Theme**: Toggle between light and dark mode with the sun/moon icon
-- **Fullscreen**: Click the maximize icon for fullscreen viewing
+Rules:
 
-## Technology Stack
+One participant per line
 
-- **React 18** - UI framework
-- **Vite** - Build tool and dev server
-- **Lucide React** - Icon library
-- **Tailwind CSS** - Utility-first CSS framework
+For CSV, only the first column is used
 
-## Project Structure
+Example:
 
-```
-taedraw/
-├── src/
-│   ├── App.jsx          # Main application component
-│   └── main.jsx         # Application entry point
-├── public/              # Static assets
-├── index.html           # HTML template
-└── package.json         # Project dependencies
-```
+Player One
+Player Two
+Player Three
 
-## Features in Detail
+🏆 How Bracket Generation Works
 
-### Finalist Logic
-When two finalists are specified:
-- They are automatically placed in opposite halves of the bracket
-- This ensures they can only meet in the final match
-- Other participants are randomly distributed around them
+Participants are shuffled randomly
 
-### Bracket Generation
-- Uses Fisher-Yates shuffle algorithm for fair randomization
-- Automatically adds BYE entries for incomplete brackets
-- Maintains bracket structure with proper power-of-2 sizing
+Optional finalists are placed on opposite sides
 
-### Round Naming
-Rounds are automatically named based on tournament stage:
-- Final
-- Semi-finals
-- Quarter-finals
-- Round of 16 (Eighths)
-- Round of 32 (Sixteenths)
-- Round of 64 (Thirty-seconds)
+Empty slots are filled with BYE
 
-## Browser Support
+Winners advance automatically
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
+Champion is highlighted at the end
 
-## Contributing
+📤 Export Options
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+PDF – Printable bracket view
 
-## License
+CSV – Spreadsheet-friendly
 
-This project is open source and available under the [MIT License](LICENSE).
+XLS – Excel-compatible format
 
-## Acknowledgments
+🌍 Language Support
 
-- Built with React and Vite
-- Icons by Lucide React
-- Styled with Tailwind CSS
+Language can be switched at runtime:
 
----
+English
 
-**Made with ❤️ for tournament organizers everywhere**
+French
+
+Spanish
+
+Arabic (RTL layout supported)
+
+📁 Project Structure (Simplified)
+src/
+ ├─ App.jsx
+ ├─ main.jsx
+ ├─ index.css
+public/
+ └─ taedraw_icon.svg
+
+🔒 Data Persistence
+
+All tournaments and brackets are saved automatically in LocalStorage, so data is preserved across page reloads.
+
+👤 Author
+
+Wassim Bakir
+
+🌐 Portfolio: https://wassimbakir.netlify.app/
+
+💼 LinkedIn: https://www.linkedin.com/in/wassim-bakir-617480339/
+
+🐙 GitHub: https://github.com/WasssBak
+
+📜 License
+
+This project is licensed under the MIT License.
+You are free to use, modify, and distribute it.
