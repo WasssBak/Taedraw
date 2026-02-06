@@ -38,6 +38,14 @@ const translations = {
     importFile: "Importer",
     exportResults: "Exporter",
     createTournament: "Créer tournoi",
+    club: "Club",
+    avoidSameClub: "Éviter même club au 1er tour",
+    participantName: "Nom du participant",
+    clubName: "Nom du club (optionnel)",
+    addParticipant: "Ajouter participant",
+    editParticipants: "Modifier les participants",
+    saveParticipants: "Enregistrer",
+    cancel: "Annuler",
   },
   en: {
     title: "TAEDRAW",
@@ -56,6 +64,14 @@ const translations = {
     importFile: "Import",
     exportResults: "Export",
     createTournament: "Create Tournament",
+    club: "Club",
+    avoidSameClub: "Avoid same club in 1st round",
+    participantName: "Participant name",
+    clubName: "Club name (optional)",
+    addParticipant: "Add participant",
+    editParticipants: "Edit participants",
+    saveParticipants: "Save",
+    cancel: "Cancel",
   },
   es: {
     title: "TAEDRAW",
@@ -74,6 +90,14 @@ const translations = {
     importFile: "Importar",
     exportResults: "Exportar",
     createTournament: "Crear torneo",
+    club: "Club",
+    avoidSameClub: "Evitar mismo club en 1ª ronda",
+    participantName: "Nombre del participante",
+    clubName: "Nombre del club (opcional)",
+    addParticipant: "Añadir participante",
+    editParticipants: "Editar participantes",
+    saveParticipants: "Guardar",
+    cancel: "Cancelar",
   },
   ar: {
     title: "تايدرو",
@@ -92,6 +116,14 @@ const translations = {
     importFile: "استيراد",
     exportResults: "تصدير",
     createTournament: "إنشاء بطولة",
+    club: "النادي",
+    avoidSameClub: "تجنب نفس النادي في الجولة الأولى",
+    participantName: "اسم المشارك",
+    clubName: "اسم النادي (اختياري)",
+    addParticipant: "إضافة مشارك",
+    editParticipants: "تعديل المشاركين",
+    saveParticipants: "حفظ",
+    cancel: "إلغاء",
   },
 };
 
@@ -114,10 +146,12 @@ function App() {
             id: 1,
             name: "Tournament 1",
             participants: "",
+            participantsList: [], // New: structured participant list with clubs
             bracket: null,
             tournamentSize: 16,
             finalist1: "",
             finalist2: "",
+            avoidSameClubFirstRound: true, // New: option to avoid same club in first round
           },
         ];
   });
@@ -129,6 +163,8 @@ function App() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [editingTournamentId, setEditingTournamentId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [showParticipantsEditor, setShowParticipantsEditor] = useState(false);
+  const [tempParticipantsList, setTempParticipantsList] = useState([]);
   const fileInputRef = useRef(null);
   const exportMenuRef = useRef(null);
 
@@ -176,10 +212,12 @@ function App() {
       id: newId,
       name: `Tournament ${newId}`,
       participants: "",
+      participantsList: [],
       bracket: null,
       tournamentSize: 16,
       finalist1: "",
       finalist2: "",
+      avoidSameClubFirstRound: true,
     };
     setTournaments([...tournaments, newTournament]);
     setActiveTournamentId(newId);
@@ -200,232 +238,578 @@ function App() {
     setEditingName(currentName);
   };
 
-  const saveTournamentName = (id) => {
-    if (editingName.trim()) {
-      setTournaments((prev) =>
-        prev.map((tour) =>
-          tour.id === id ? { ...tour, name: editingName.trim() } : tour,
-        ),
-      );
-    }
+  const saveEditingTournament = (id) => {
+    setTournaments((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, name: editingName } : t)),
+    );
     setEditingTournamentId(null);
     setEditingName("");
   };
 
-  const handleFileImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target.result;
-      const names = text
-        .split(/\r?\n/)
-        .map((line) => line.split(",")[0].trim())
-        .filter((n) => n !== "");
-      if (names.length > 0)
-        updateTournament({ participants: names.join("\n") });
-      else alert("No valid names found");
-    };
-    reader.readAsText(file);
-    e.target.value = "";
+  const openParticipantsEditor = () => {
+    // Initialize from participantsList if available, otherwise from participants string
+    if (
+      activeTournament.participantsList &&
+      activeTournament.participantsList.length > 0
+    ) {
+      setTempParticipantsList([...activeTournament.participantsList]);
+    } else if (activeTournament.participants) {
+      const names = activeTournament.participants
+        .split("\n")
+        .filter((n) => n.trim());
+      setTempParticipantsList(
+        names.map((name) => ({ name: name.trim(), club: "" })),
+      );
+    } else {
+      setTempParticipantsList([{ name: "", club: "" }]);
+    }
+    setShowParticipantsEditor(true);
   };
 
-  const exportToPDF = () => {
-    const { bracket, name } = activeTournament;
-    if (!bracket) return;
-    const w = window.open("", "_blank");
-    let html = `<html><head><title>${name}</title><style>body{font-family:Arial;padding:20px}h1{text-align:center;color:#4F46E5}h2{margin-top:30px;color:#1F2937;border-bottom:2px solid #E5E7EB;padding-bottom:5px}.match{margin:10px 0;padding:10px;background:#F9FAFB;border-radius:8px}.winner{color:#10B981;font-weight:bold}.champion{text-align:center;margin-top:40px;padding:20px;background:#FEF3C7;border:3px solid #F59E0B;border-radius:12px}@media print{button{display:none}}</style></head><body><h1>${name}</h1>`;
-    bracket.rounds.forEach((round, rIdx) => {
-      html += `<h2>${getRoundName(rIdx, bracket.rounds.length)}</h2>`;
-      round.forEach((match, mIdx) => {
-        html += `<div class="match"><strong>Match ${mIdx + 1}:</strong> ${match.p1 || "..."} vs ${match.p2 || "..."} ${match.winner ? `→ <span class="winner">${match.winner}</span>` : "→ TBD"}</div>`;
-      });
+  const addParticipantRow = () => {
+    setTempParticipantsList([...tempParticipantsList, { name: "", club: "" }]);
+  };
+
+  const updateParticipantRow = (index, field, value) => {
+    const updated = [...tempParticipantsList];
+    updated[index][field] = value;
+    setTempParticipantsList(updated);
+  };
+
+  const removeParticipantRow = (index) => {
+    setTempParticipantsList(tempParticipantsList.filter((_, i) => i !== index));
+  };
+
+  const saveParticipantsList = () => {
+    const validParticipants = tempParticipantsList.filter((p) => p.name.trim());
+    const participantsString = validParticipants.map((p) => p.name).join("\n");
+    updateTournament({
+      participantsList: validParticipants,
+      participants: participantsString,
     });
-    const champion = bracket.rounds[bracket.rounds.length - 1][0]?.winner;
-    if (champion)
-      html += `<div class="champion"><h1>🏆 CHAMPION: ${champion} 🏆</h1></div>`;
-    html += `<div style="text-align:center;margin-top:30px"><button onclick="window.print()" style="padding:12px 24px;background:#4F46E5;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer">Print / Save as PDF</button></div></body></html>`;
-    w.document.write(html);
-    w.document.close();
-    setShowExportMenu(false);
+    setShowParticipantsEditor(false);
+  };
+
+  const cancelParticipantsEdit = () => {
+    setShowParticipantsEditor(false);
+    setTempParticipantsList([]);
+  };
+
+  const MATCH_HEIGHT = 110;
+  const GAP_ROUND_0 = 20;
+  const champion = activeTournament.bracket
+    ? activeTournament.bracket.rounds[
+        activeTournament.bracket.rounds.length - 1
+      ][0]?.winner
+    : null;
+
+  const getRoundName = (roundIdx, totalRounds) => {
+    if (roundIdx === totalRounds - 1) return t.final;
+    if (roundIdx === totalRounds - 2) return t.semiFinal;
+    if (roundIdx === totalRounds - 3) return t.quarterFinal;
+    return `Round ${roundIdx + 1}`;
+  };
+
+  // New function to check if two participants are from the same club
+  const areFromSameClub = (p1, p2, participantsList) => {
+    const participant1 = participantsList.find((p) => p.name === p1);
+    const participant2 = participantsList.find((p) => p.name === p2);
+
+    if (!participant1 || !participant2) return false;
+    if (!participant1.club || !participant2.club) return false;
+
+    return (
+      participant1.club.trim() !== "" &&
+      participant1.club.trim().toLowerCase() ===
+        participant2.club.trim().toLowerCase()
+    );
+  };
+
+  // Modified shuffle function with club constraint
+  const shuffleWithClubConstraint = (
+    array,
+    participantsList,
+    avoidSameClub,
+  ) => {
+    if (!avoidSameClub || !participantsList || participantsList.length === 0) {
+      // Standard shuffle
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // Try to create first round pairings that avoid same club
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (attempts < maxAttempts) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Check first round pairings (pairs of 2)
+      let hasConflict = false;
+      for (let i = 0; i < shuffled.length; i += 2) {
+        if (i + 1 < shuffled.length) {
+          const p1 = shuffled[i];
+          const p2 = shuffled[i + 1];
+          if (
+            p1 !== "BYE" &&
+            p2 !== "BYE" &&
+            areFromSameClub(p1, p2, participantsList)
+          ) {
+            hasConflict = true;
+            break;
+          }
+        }
+      }
+
+      if (!hasConflict) {
+        return shuffled;
+      }
+
+      attempts++;
+    }
+
+    // If we couldn't find a perfect arrangement, return the last shuffle
+    // and optionally warn the user
+    console.warn(
+      "Could not avoid all same-club matchups in first round after",
+      maxAttempts,
+      "attempts",
+    );
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  const generateBracket = () => {
+    const lines = activeTournament.participants
+      .split("\n")
+      .filter((x) => x.trim());
+    if (lines.length < 2)
+      return alert(
+        language === "fr"
+          ? "Au moins 2 participants requis"
+          : "At least 2 participants required",
+      );
+
+    const size = activeTournament.tournamentSize;
+    let pool = [...lines];
+
+    const f1 = activeTournament.finalist1?.trim();
+    const f2 = activeTournament.finalist2?.trim();
+    if (f1) pool = pool.filter((p) => p !== f1);
+    if (f2) pool = pool.filter((p) => p !== f2);
+
+    // Use the new shuffle function with club constraint
+    const shuffled = shuffleWithClubConstraint(
+      pool,
+      activeTournament.participantsList || [],
+      activeTournament.avoidSameClubFirstRound,
+    );
+
+    const finalList = [];
+    if (f1) finalList.push(f1);
+    finalList.push(...shuffled);
+    if (f2) finalList.push(f2);
+
+    while (finalList.length < size) finalList.push("BYE");
+
+    const firstRound = [];
+    for (let i = 0; i < finalList.length; i += 2) {
+      firstRound.push({
+        id: `r0-m${i / 2}`,
+        p1: finalList[i],
+        p2: finalList[i + 1],
+        winner: null,
+      });
+    }
+
+    const rounds = [firstRound];
+    let currentRound = firstRound;
+    let roundIdx = 1;
+    while (currentRound.length > 1) {
+      const nextRound = [];
+      for (let i = 0; i < currentRound.length; i += 2) {
+        nextRound.push({
+          id: `r${roundIdx}-m${i / 2}`,
+          p1: null,
+          p2: null,
+          winner: null,
+        });
+      }
+      rounds.push(nextRound);
+      currentRound = nextRound;
+      roundIdx++;
+    }
+
+    updateTournament({ bracket: { rounds } });
+  };
+
+  const advanceWinner = (rIdx, mIdx, player) => {
+    const newRounds = activeTournament.bracket.rounds.map((r) =>
+      r.map((m) => ({ ...m })),
+    );
+    const match = newRounds[rIdx][mIdx];
+    match.winner = player;
+
+    if (rIdx + 1 < newRounds.length) {
+      const nextMatchIdx = Math.floor(mIdx / 2);
+      const nextMatch = newRounds[rIdx + 1][nextMatchIdx];
+      if (mIdx % 2 === 0) nextMatch.p1 = player;
+      else nextMatch.p2 = player;
+
+      for (
+        let futureRound = rIdx + 1;
+        futureRound < newRounds.length;
+        futureRound++
+      ) {
+        newRounds[futureRound].forEach((m) => {
+          if (m.p1 === player || m.p2 === player) m.winner = null;
+        });
+      }
+    }
+
+    updateTournament({ bracket: { rounds: newRounds } });
   };
 
   const exportToCSV = () => {
-    const { bracket, name } = activeTournament;
-    if (!bracket) return;
+    if (!activeTournament.bracket) return;
     let csv = "Round,Match,Player 1,Player 2,Winner\n";
-    bracket.rounds.forEach((round, rIdx) => {
+    activeTournament.bracket.rounds.forEach((round, rIdx) => {
       round.forEach((match, mIdx) => {
-        csv += `"${getRoundName(rIdx, bracket.rounds.length)}","Match ${mIdx + 1}","${match.p1 || "..."}","${match.p2 || "..."}","${match.winner || "TBD"}"\n`;
+        csv += `${rIdx + 1},${mIdx + 1},${match.p1 || ""},${match.p2 || ""},${match.winner || ""}\n`;
       });
     });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${name.replace(/\s+/g, "_")}.csv`;
+    a.download = `${activeTournament.name}_results.csv`;
     a.click();
-    URL.revokeObjectURL(url);
     setShowExportMenu(false);
   };
 
-  const exportToXLSX = () => {
-    const { bracket, name } = activeTournament;
-    if (!bracket) return;
-    let html = `<html><head><meta charset="utf-8"></head><body><table border="1"><tr><th>Round</th><th>Match</th><th>Player 1</th><th>Player 2</th><th>Winner</th></tr>`;
-    bracket.rounds.forEach((round, rIdx) => {
-      round.forEach((match, mIdx) => {
-        html += `<tr><td>${getRoundName(rIdx, bracket.rounds.length)}</td><td>Match ${mIdx + 1}</td><td>${match.p1 || "..."}</td><td>${match.p2 || "..."}</td><td>${match.winner || "TBD"}</td></tr>`;
+  const exportToPDF = async () => {
+    if (!activeTournament.bracket) return;
+
+    try {
+      await import(
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+      );
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
       });
-    });
-    html += `</table></body></html>`;
-    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+
+      // Configuration
+      const MATCH_BOX_WIDTH = 50;
+      const MATCH_BOX_HEIGHT = 20;
+      const ROUND_SPACING = 65;
+      const VERTICAL_SPACING_BASE = 25;
+      const START_X = 15;
+      const START_Y = 40;
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(activeTournament.name, 148, 15, { align: "center" });
+
+      const rounds = activeTournament.bracket.rounds;
+
+      rounds.forEach((round, rIdx) => {
+        const verticalSpacing = VERTICAL_SPACING_BASE * Math.pow(2, rIdx);
+        const roundOffset =
+          (VERTICAL_SPACING_BASE * (Math.pow(2, rIdx) - 1)) / 2;
+
+        round.forEach((match, mIdx) => {
+          const x = START_X + rIdx * ROUND_SPACING;
+          const y = START_Y + mIdx * verticalSpacing + roundOffset;
+
+          doc.setDrawColor(200);
+          doc.rect(x, y, MATCH_BOX_WIDTH, MATCH_BOX_HEIGHT);
+
+          doc.setFontSize(8);
+          doc.setTextColor(60);
+
+          const p1 = match.p1 || "TBD";
+          const p2 = match.p2 || "TBD";
+
+          doc.text(p1, x + 5, y + 7);
+          doc.text(p2, x + 5, y + 15);
+
+          if (rIdx < rounds.length - 1) {
+            const nextX = x + MATCH_BOX_WIDTH;
+            const nextRoundX = START_X + (rIdx + 1) * ROUND_SPACING;
+            const matchCenterY = y + MATCH_BOX_HEIGHT / 2;
+
+            doc.setDrawColor(180);
+            doc.setLineWidth(0.2);
+            doc.line(nextX, matchCenterY, nextX + 10, matchCenterY);
+
+            if (mIdx % 2 === 0) {
+              const partnerY =
+                START_Y + (mIdx + 1) * verticalSpacing + roundOffset;
+              const partnerCenterY = partnerY + MATCH_BOX_HEIGHT / 2;
+
+              if (mIdx + 1 < round.length) {
+                doc.line(nextX + 10, matchCenterY, nextX + 10, partnerCenterY);
+                const midY = (matchCenterY + partnerCenterY) / 2;
+                doc.line(nextX + 10, midY, nextRoundX, midY);
+              }
+            }
+          }
+        });
+      });
+
+      const lastRound = rounds[rounds.length - 1];
+      const tournamentWinner = lastRound[0]?.winner;
+
+      const lastRoundIdx = rounds.length - 1;
+      const finalRoundOffset =
+        (VERTICAL_SPACING_BASE * (Math.pow(2, lastRoundIdx) - 1)) / 2;
+      const championY = START_Y + finalRoundOffset + MATCH_BOX_HEIGHT / 2;
+      const championX = START_X + rounds.length * ROUND_SPACING;
+
+      doc.setFontSize(10);
+      doc.setTextColor(79, 70, 229);
+      doc.text(t.champion, championX, championY - 5);
+
+      doc.setDrawColor(79, 70, 229);
+      doc.setLineWidth(0.5);
+      doc.rect(championX, championY, MATCH_BOX_WIDTH, MATCH_BOX_HEIGHT);
+
+      doc.setFontSize(9);
+      doc.text(tournamentWinner || "TBD", championX + 5, championY + 12);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(128);
+      doc.text(
+        `Generated by TAEDRAW - ${new Date().toLocaleDateString()}`,
+        148,
+        200,
+        { align: "center" },
+      );
+
+      doc.save(`${activeTournament.name}_bracket.pdf`);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      alert("Error exporting PDF. Please try again.");
+      setShowExportMenu(false);
+    }
+  };
+
+  const importFromFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      try {
+        const content = event.target.result;
+
+        // Handle JSON files (full tournament data or participants list)
+        if (fileName.endsWith(".json")) {
+          const imported = JSON.parse(content);
+
+          // Check if it's a full tournament export
+          if (Array.isArray(imported)) {
+            setTournaments(imported);
+            setActiveTournamentId(imported[0]?.id || 1);
+            alert("Tournament data imported successfully!");
+          }
+          // Check if it's a participants list with clubs
+          else if (Array.isArray(imported.participants)) {
+            const participantsList = imported.participants;
+            const participantsString = participantsList
+              .map((p) => p.name)
+              .join("\n");
+            updateTournament({
+              participantsList: participantsList,
+              participants: participantsString,
+            });
+            alert(`Imported ${participantsList.length} participants!`);
+          } else {
+            alert("Invalid JSON format");
+          }
+        }
+
+        // Handle CSV files (name,club format)
+        else if (fileName.endsWith(".csv")) {
+          const lines = content.split("\n").filter((line) => line.trim());
+          const participantsList = [];
+
+          lines.forEach((line, index) => {
+            // Skip header if it exists
+            if (
+              index === 0 &&
+              (line.toLowerCase().includes("name") ||
+                line.toLowerCase().includes("participant"))
+            ) {
+              return;
+            }
+
+            const parts = line.split(",").map((p) => p.trim());
+            if (parts[0]) {
+              participantsList.push({
+                name: parts[0],
+                club: parts[1] || "",
+              });
+            }
+          });
+
+          if (participantsList.length > 0) {
+            const participantsString = participantsList
+              .map((p) => p.name)
+              .join("\n");
+            updateTournament({
+              participantsList: participantsList,
+              participants: participantsString,
+            });
+            alert(`Imported ${participantsList.length} participants from CSV!`);
+          } else {
+            alert("No valid participants found in CSV");
+          }
+        }
+
+        // Handle TXT files (simple name list or name|club format)
+        else if (fileName.endsWith(".txt")) {
+          const lines = content.split("\n").filter((line) => line.trim());
+          const participantsList = [];
+
+          lines.forEach((line) => {
+            if (line.includes("|")) {
+              // Format: name|club
+              const parts = line.split("|").map((p) => p.trim());
+              participantsList.push({
+                name: parts[0],
+                club: parts[1] || "",
+              });
+            } else {
+              // Format: just name
+              participantsList.push({
+                name: line.trim(),
+                club: "",
+              });
+            }
+          });
+
+          if (participantsList.length > 0) {
+            const participantsString = participantsList
+              .map((p) => p.name)
+              .join("\n");
+            updateTournament({
+              participantsList: participantsList,
+              participants: participantsString,
+            });
+            alert(`Imported ${participantsList.length} participants from TXT!`);
+          } else {
+            alert("No valid participants found in TXT");
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Error reading file: " + error.message);
+      }
+    };
+
+    reader.readAsText(file);
+    e.target.value = ""; // Reset input
+  };
+
+  const exportParticipantsTemplate = () => {
+    // Create a sample template file
+    const template = {
+      participants: [
+        { name: "John Doe", club: "Club A" },
+        { name: "Jane Smith", club: "Club A" },
+        { name: "Bob Johnson", club: "Club B" },
+        { name: "Alice Williams", club: "Club B" },
+        { name: "Charlie Brown", club: "Club C" },
+      ],
+    };
+
+    const dataStr = JSON.stringify(template, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${name.replace(/\s+/g, "_")}.xls`;
+    a.download = "participants_template.json";
     a.click();
-    URL.revokeObjectURL(url);
-    setShowExportMenu(false);
   };
 
-  const getRoundName = (idx, total) => {
-    const rem = total - idx;
-    if (rem === 1) return t.final;
-    if (rem === 2) return t.semiFinal;
-    if (rem === 3) return t.quarterFinal;
-    return language === "ar" ? `الدور ${idx + 1}` : `ROUND ${idx + 1}`;
+  const exportToFile = () => {
+    const dataStr = JSON.stringify(tournaments, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "taedraw_tournaments.json";
+    a.click();
   };
-
-  const generateBracket = () => {
-    const { participants, tournamentSize, finalist1, finalist2 } =
-      activeTournament;
-    let names = participants
-      .split("\n")
-      .map((n) => n.trim())
-      .filter((n) => n !== "");
-    if (names.length < 2) return alert("Min 2 participants required");
-    const f1 = finalist1.trim(),
-      f2 = finalist2.trim();
-    let shuffled = [...names].sort(() => Math.random() - 0.5);
-    if (f1 && f2) {
-      shuffled = shuffled.filter((n) => n !== f1 && n !== f2);
-      shuffled.splice(0, 0, f1);
-      shuffled.splice(Math.floor(tournamentSize / 2), 0, f2);
-    }
-    while (shuffled.length < tournamentSize) shuffled.push("BYE");
-    const firstRound = [];
-    for (let i = 0; i < tournamentSize; i += 2) {
-      const p1 = shuffled[i],
-        p2 = shuffled[i + 1];
-      firstRound.push({
-        id: `r0-m${i / 2}`,
-        p1,
-        p2,
-        winner: p1 === "BYE" ? p2 : p2 === "BYE" ? p1 : null,
-      });
-    }
-    const allRounds = [firstRound];
-    let matchesCount = tournamentSize / 4,
-      rIdx = 1;
-    while (matchesCount >= 1) {
-      allRounds.push(
-        Array.from({ length: matchesCount }, (_, i) => ({
-          id: `r${rIdx}-m${i}`,
-          p1: "",
-          p2: "",
-          winner: null,
-        })),
-      );
-      matchesCount /= 2;
-      rIdx++;
-    }
-    updateTournament({ bracket: { rounds: allRounds } });
-  };
-
-  const advanceWinner = (rIdx, mIdx, winner) => {
-    if (winner === "BYE" || !winner) return;
-    const { bracket } = activeTournament;
-    const newRounds = [...bracket.rounds];
-    newRounds[rIdx][mIdx].winner = winner;
-    if (rIdx < newRounds.length - 1) {
-      const nextMatchIdx = Math.floor(mIdx / 2);
-      if (mIdx % 2 === 0) newRounds[rIdx + 1][nextMatchIdx].p1 = winner;
-      else newRounds[rIdx + 1][nextMatchIdx].p2 = winner;
-    }
-    updateTournament({ bracket: { ...bracket, rounds: newRounds } });
-  };
-
-  const champion =
-    activeTournament?.bracket?.rounds[
-      activeTournament.bracket.rounds.length - 1
-    ][0]?.winner || null;
-  const MATCH_HEIGHT = 110,
-    GAP_ROUND_0 = 32;
 
   return (
     <>
       <div
-        className={`min-h-screen transition-colors duration-500 p-6 font-sans ${darkMode ? "bg-[#050a18] text-white" : "bg-slate-50 text-slate-900"}`}
-        dir={language === "ar" ? "rtl" : "ltr"}
+        className={`min-h-screen transition-colors duration-500 ${darkMode ? "bg-[#0b1224] text-white" : "bg-slate-50 text-slate-900"}`}
       >
-        <header className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-y-6 gap-x-4 mb-12">
-          <div className="flex items-center gap-4">
-            <div
-              className={`p-3 rounded-2xl border ${darkMode ? "bg-indigo-500/20 border-indigo-500/20" : "bg-indigo-500 text-white border-indigo-400"}`}
-            >
-              <Users size={28} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tighter italic leading-none">
+        <nav
+          className={`border-b backdrop-blur-lg sticky top-0 z-50 ${darkMode ? "bg-[#050a18]/90 border-slate-800" : "bg-white/90 border-slate-200"}`}
+        >
+          <div className="container mx-auto px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <h1 className="text-2xl font-black tracking-tight">
                 {t.title}
+                <span className="text-indigo-500">.</span>
               </h1>
-              <p className="text-[11px] opacity-60 uppercase tracking-widest mt-1 font-bold">
-                {t.subtitle}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <button
-                onClick={() => setShowTournamentMenu(!showTournamentMenu)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${darkMode ? "bg-slate-900/60 border-slate-800 hover:bg-slate-800/60" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm"}`}
-              >
-                <Trophy size={16} />
-                <span className="text-sm font-bold">
-                  {activeTournament?.name}
-                </span>
-                <ChevronDown size={16} />
-              </button>
-              {showTournamentMenu && (
-                <div
-                  className={`absolute top-full mt-2 right-0 w-64 rounded-2xl border shadow-xl overflow-hidden z-50 ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+              <div className="relative">
+                <button
+                  onClick={() => setShowTournamentMenu(!showTournamentMenu)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-2 ${darkMode ? "bg-slate-800 border-slate-700 hover:bg-slate-700" : "bg-white border-slate-300 hover:bg-slate-50"}`}
                 >
-                  <div className="p-2 space-y-1 max-h-80 overflow-y-auto">
-                    {tournaments.map((tour) => (
-                      <div
-                        key={tour.id}
-                        className={`flex items-center gap-2 p-2 rounded-xl ${tour.id === activeTournamentId ? (darkMode ? "bg-indigo-500/20" : "bg-indigo-50") : "hover:bg-slate-500/10"}`}
-                      >
-                        {editingTournamentId === tour.id ? (
-                          <input
-                            type="text"
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onBlur={() => saveTournamentName(tour.id)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter")
-                                saveTournamentName(tour.id);
-                              if (e.key === "Escape") {
-                                setEditingTournamentId(null);
-                                setEditingName("");
-                              }
-                            }}
-                            autoFocus
-                            className={`flex-1 text-sm font-medium px-2 py-1 rounded outline-none border ${darkMode ? "bg-slate-800 border-indigo-500" : "bg-white border-indigo-400"}`}
-                          />
-                        ) : (
-                          <>
+                  {activeTournament?.name}
+                  <ChevronDown size={16} />
+                </button>
+                {showTournamentMenu && (
+                  <div
+                    className={`absolute top-full mt-2 left-0 w-64 rounded-xl border shadow-xl overflow-hidden ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+                  >
+                    <div className="max-h-64 overflow-y-auto">
+                      {tournaments.map((tour) => (
+                        <div
+                          key={tour.id}
+                          className={`flex items-center justify-between p-3 border-b ${darkMode ? "border-slate-800 hover:bg-slate-800" : "border-slate-100 hover:bg-slate-50"}`}
+                        >
+                          {editingTournamentId === tour.id ? (
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  saveEditingTournament(tour.id);
+                                if (e.key === "Escape")
+                                  setEditingTournamentId(null);
+                              }}
+                              className={`flex-1 px-2 py-1 rounded text-sm ${darkMode ? "bg-slate-700" : "bg-slate-100"}`}
+                              autoFocus
+                            />
+                          ) : (
                             <button
                               onClick={() => {
                                 setActiveTournamentId(tour.id);
@@ -435,144 +819,292 @@ function App() {
                             >
                               {tour.name}
                             </button>
+                          )}
+                          <div className="flex gap-1">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditingTournament(tour.id, tour.name);
-                              }}
-                              className="p-1 hover:bg-indigo-500/20 rounded-lg"
+                              onClick={() =>
+                                startEditingTournament(tour.id, tour.name)
+                              }
+                              className="p-1 hover:bg-slate-700 rounded"
                             >
-                              <Pencil size={14} className="text-indigo-400" />
+                              <Pencil size={14} />
                             </button>
-                          </>
-                        )}
-                        {tournaments.length > 1 && (
-                          <button
-                            onClick={() => deleteTournament(tour.id)}
-                            className="p-1 hover:bg-red-500/20 rounded-lg"
-                          >
-                            <X size={14} className="text-red-500" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                            <button
+                              onClick={() => deleteTournament(tour.id)}
+                              className="p-1 hover:bg-red-500/20 text-red-500 rounded"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={createNewTournament}
+                      className={`w-full p-3 flex items-center justify-center gap-2 text-sm font-bold border-t ${darkMode ? "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-slate-800" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-slate-200"}`}
+                    >
+                      <Plus size={16} />
+                      {t.createTournament}
+                    </button>
                   </div>
-                  <button
-                    onClick={createNewTournament}
-                    className={`w-full p-3 border-t flex items-center justify-center gap-2 text-sm font-bold ${darkMode ? "border-slate-800 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400" : "border-slate-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-600"}`}
-                  >
-                    <Plus size={16} />
-                    {t.createTournament}
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-            <div
-              className={`flex items-center gap-2 p-2 rounded-2xl border ${darkMode ? "bg-slate-900/60 border-slate-800" : "bg-white border-slate-200 shadow-sm"}`}
-            >
+            <div className="flex items-center gap-3">
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="bg-transparent text-xs font-bold px-2 outline-none cursor-pointer"
+                className={`px-3 py-2 rounded-xl text-sm font-bold border ${darkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-300"}`}
               >
-                <option value="fr">🇫🇷 FR</option>
-                <option value="en">🇺🇸 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="ar">🇸🇦 AR</option>
+                <option value="en">EN</option>
+                <option value="fr">FR</option>
+                <option value="es">ES</option>
+                <option value="ar">AR</option>
               </select>
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-1.5 hover:bg-slate-500/10 rounded-lg"
+                className={`p-2 rounded-xl border ${darkMode ? "bg-slate-800 border-slate-700 hover:bg-slate-700" : "bg-white border-slate-300 hover:bg-slate-50"}`}
               >
-                {darkMode ? (
-                  <Sun size={18} className="text-amber-400" />
-                ) : (
-                  <Moon size={18} />
-                )}
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               <button
                 onClick={toggleFullscreen}
-                className="p-1.5 hover:bg-slate-500/10 rounded-lg"
+                className={`p-2 rounded-xl border ${darkMode ? "bg-slate-800 border-slate-700 hover:bg-slate-700" : "bg-white border-slate-300 hover:bg-slate-50"}`}
               >
                 {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
               </button>
+              <button
+                onClick={exportToFile}
+                className={`p-2 rounded-xl border ${darkMode ? "bg-slate-800 border-slate-700 hover:bg-slate-700" : "bg-white border-slate-300 hover:bg-slate-50"}`}
+              >
+                <Download size={18} />
+              </button>
             </div>
           </div>
-        </header>
+        </nav>
 
-        {!activeTournament?.bracket ? (
-          <section className="max-w-3xl mx-auto space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div
-                className={`p-6 rounded-3xl border ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
-              >
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-4 block">
-                  {t.size}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[8, 16, 32, 64, 128].map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateTournament({ tournamentSize: size })}
-                      className={`py-3 rounded-xl font-bold border-2 ${activeTournament.tournamentSize === size ? "bg-indigo-600 border-indigo-400 text-white" : "bg-slate-500/10 border-transparent"}`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div
-                className={`p-6 rounded-3xl border ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
-              >
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-4 block">
-                  {t.finalists}
-                </label>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder={t.finalist1}
-                    value={activeTournament.finalist1}
-                    onChange={(e) =>
-                      updateTournament({ finalist1: e.target.value })
-                    }
-                    className={`w-full border p-3 rounded-xl outline-none text-sm ${darkMode ? "bg-slate-950 border-slate-700" : "bg-slate-50 border-slate-300"}`}
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.finalist2}
-                    value={activeTournament.finalist2}
-                    onChange={(e) =>
-                      updateTournament({ finalist2: e.target.value })
-                    }
-                    className={`w-full border p-3 rounded-xl outline-none text-sm ${darkMode ? "bg-slate-950 border-slate-700" : "bg-slate-50 border-slate-300"}`}
-                  />
-                </div>
-              </div>
+        {!activeTournament.bracket ? (
+          <section className="container mx-auto px-6 py-12 max-w-3xl">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-black mb-3">{t.subtitle}</h2>
+              <p className="opacity-60 text-sm">{activeTournament.name}</p>
             </div>
-            <div className="relative">
+
+            {/* Participants Editor Modal */}
+            {showParticipantsEditor && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div
+                  className={`w-full max-w-2xl max-h-[80vh] rounded-2xl ${darkMode ? "bg-slate-900" : "bg-white"} overflow-hidden flex flex-col`}
+                >
+                  <div
+                    className={`p-6 border-b ${darkMode ? "border-slate-800" : "border-slate-200"}`}
+                  >
+                    <h3 className="text-xl font-bold">{t.editParticipants}</h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <div className="space-y-3">
+                      {tempParticipantsList.map((participant, index) => (
+                        <div key={index} className="flex gap-3 items-start">
+                          <div className="flex-1 space-y-2">
+                            <input
+                              type="text"
+                              value={participant.name}
+                              onChange={(e) =>
+                                updateParticipantRow(
+                                  index,
+                                  "name",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder={t.participantName}
+                              className={`w-full px-4 py-2 rounded-xl border ${darkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-300"}`}
+                            />
+                            <input
+                              type="text"
+                              value={participant.club}
+                              onChange={(e) =>
+                                updateParticipantRow(
+                                  index,
+                                  "club",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder={t.clubName}
+                              className={`w-full px-4 py-2 rounded-xl border ${darkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-300"}`}
+                            />
+                          </div>
+                          <button
+                            onClick={() => removeParticipantRow(index)}
+                            className={`p-2 rounded-xl hover:bg-red-500/20 text-red-500`}
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={addParticipantRow}
+                      className={`w-full mt-4 py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 font-bold ${darkMode ? "border-slate-700 hover:bg-slate-800" : "border-slate-300 hover:bg-slate-50"}`}
+                    >
+                      <Plus size={20} />
+                      {t.addParticipant}
+                    </button>
+                  </div>
+                  <div
+                    className={`p-6 border-t ${darkMode ? "border-slate-800" : "border-slate-200"} flex gap-3`}
+                  >
+                    <button
+                      onClick={cancelParticipantsEdit}
+                      className={`flex-1 py-3 rounded-xl font-bold ${darkMode ? "bg-slate-800 hover:bg-slate-700" : "bg-slate-200 hover:bg-slate-300"}`}
+                    >
+                      {t.cancel}
+                    </button>
+                    <button
+                      onClick={saveParticipantsList}
+                      className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold"
+                    >
+                      {t.saveParticipants}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div
+              className={`rounded-3xl border p-8 mb-8 ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <label className="flex items-center gap-2 text-sm font-bold opacity-60">
+                  <Users size={16} />
+                  {t.participants}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,.csv,.txt"
+                    onChange={importFromFile}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold ${darkMode ? "bg-slate-800 hover:bg-slate-700 border border-slate-700" : "bg-slate-100 hover:bg-slate-200 border border-slate-300"}`}
+                  >
+                    <Upload size={16} />
+                    {t.importFile}
+                  </button>
+                  <button
+                    onClick={openParticipantsEditor}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold ${darkMode ? "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"}`}
+                  >
+                    {t.editParticipants}
+                  </button>
+                </div>
+              </div>
               <textarea
-                className={`w-full h-48 p-6 rounded-3xl border outline-none font-medium text-lg ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
-                placeholder="One name per line..."
                 value={activeTournament.participants}
                 onChange={(e) =>
                   updateTournament({ participants: e.target.value })
                 }
+                placeholder="Enter participants (one per line) or use Import/Edit buttons"
+                className={`w-full h-48 px-6 py-4 rounded-2xl border resize-none font-mono text-sm ${darkMode ? "bg-slate-800 border-slate-700 placeholder:text-slate-600" : "bg-slate-50 border-slate-300 placeholder:text-slate-400"}`}
               />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleFileImport}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className={`absolute top-4 right-4 px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold ${darkMode ? "bg-slate-800 hover:bg-slate-700 border border-slate-700" : "bg-slate-100 hover:bg-slate-200 border border-slate-300"}`}
-              >
-                <Upload size={16} />
-                {t.importFile}
-              </button>
+              <div className="mt-4 flex justify-between items-center">
+                <div className="text-xs opacity-50">
+                  {
+                    activeTournament.participants
+                      .split("\n")
+                      .filter((x) => x.trim()).length
+                  }{" "}
+                  participant(s)
+                  {activeTournament.participantsList &&
+                    activeTournament.participantsList.length > 0 &&
+                    ` • ${activeTournament.participantsList.filter((p) => p.club && p.club.trim()).length} with clubs`}
+                </div>
+                <button
+                  onClick={exportParticipantsTemplate}
+                  className={`text-xs font-medium opacity-60 hover:opacity-100 flex items-center gap-1`}
+                >
+                  <Download size={12} />
+                  Download template
+                </button>
+              </div>
             </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div
+                className={`rounded-3xl border p-6 ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
+              >
+                <label className="block text-sm font-bold opacity-60 mb-3">
+                  {t.size}
+                </label>
+                <select
+                  value={activeTournament.tournamentSize}
+                  onChange={(e) =>
+                    updateTournament({ tournamentSize: +e.target.value })
+                  }
+                  className={`w-full px-5 py-3 rounded-xl border font-bold ${darkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-300"}`}
+                >
+                  {[4, 8, 16, 32, 64].map((s) => (
+                    <option key={s} value={s}>
+                      {s} {t.participants}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
+                className={`rounded-3xl border p-6 ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
+              >
+                <label className="flex items-center gap-2 text-sm font-bold opacity-60 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={activeTournament.avoidSameClubFirstRound}
+                    onChange={(e) =>
+                      updateTournament({
+                        avoidSameClubFirstRound: e.target.checked,
+                      })
+                    }
+                    className="w-4 h-4 rounded accent-indigo-500"
+                  />
+                  {t.avoidSameClub}
+                </label>
+                <p className="text-xs opacity-50">
+                  {language === "fr"
+                    ? "Lorsque activé, les participants du même club ne se rencontreront pas au premier tour (si possible)"
+                    : "When enabled, participants from the same club will not face each other in the first round (if possible)"}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={`rounded-3xl border p-6 mb-8 ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
+            >
+              <label className="block text-sm font-bold opacity-60 mb-4">
+                {t.finalists}
+              </label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  value={activeTournament.finalist1}
+                  onChange={(e) =>
+                    updateTournament({ finalist1: e.target.value })
+                  }
+                  placeholder={t.finalist1}
+                  className={`px-5 py-3 rounded-xl border font-mono text-sm ${darkMode ? "bg-slate-800 border-slate-700 placeholder:text-slate-600" : "bg-slate-50 border-slate-300 placeholder:text-slate-400"}`}
+                />
+                <input
+                  type="text"
+                  value={activeTournament.finalist2}
+                  onChange={(e) =>
+                    updateTournament({ finalist2: e.target.value })
+                  }
+                  placeholder={t.finalist2}
+                  className={`px-5 py-3 rounded-xl border font-mono text-sm ${darkMode ? "bg-slate-800 border-slate-700 placeholder:text-slate-600" : "bg-slate-50 border-slate-300 placeholder:text-slate-400"}`}
+                />
+              </div>
+            </div>
+
             <button
               onClick={generateBracket}
               className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-transform"
@@ -615,13 +1147,6 @@ function App() {
                     >
                       <FileText size={16} />
                       CSV
-                    </button>
-                    <button
-                      onClick={exportToXLSX}
-                      className={`w-full p-3 flex items-center gap-3 text-sm font-medium border-t ${darkMode ? "hover:bg-slate-800 border-slate-800" : "hover:bg-slate-50 border-slate-200"}`}
-                    >
-                      <FileText size={16} />
-                      XLSX
                     </button>
                   </div>
                 )}
