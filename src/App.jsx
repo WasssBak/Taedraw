@@ -83,7 +83,7 @@ const translations = {
     semiFinal: "SEMIFINALES",
     quarterFinal: "CUARTOS DE FINAL",
     participants: "Participantes",
-    size: "Tamaño",
+    size: "Size",
     finalists: "Finalistas potenciales",
     finalist1: "Finalista 1",
     finalist2: "Finalista 2",
@@ -94,7 +94,7 @@ const translations = {
     avoidSameClub: "Evitar mismo club en 1ª ronda",
     participantName: "Nombre del participante",
     clubName: "Nombre del club (opcional)",
-    addParticipant: "Añadir participante",
+    addParticipant: "Añadir participant",
     editParticipants: "Editar participantes",
     saveParticipants: "Guardar",
     cancel: "Cancelar",
@@ -146,12 +146,12 @@ function App() {
             id: 1,
             name: "Tournament 1",
             participants: "",
-            participantsList: [], // New: structured participant list with clubs
+            participantsList: [],
             bracket: null,
             tournamentSize: 16,
             finalist1: "",
             finalist2: "",
-            avoidSameClubFirstRound: true, // New: option to avoid same club in first round
+            avoidSameClubFirstRound: true,
           },
         ];
   });
@@ -168,7 +168,9 @@ function App() {
   const fileInputRef = useRef(null);
   const exportMenuRef = useRef(null);
 
-  const activeTournament = tournaments.find((t) => t.id === activeTournamentId);
+  // Force re-render when tournaments change by using useMemo or direct find
+  const activeTournament =
+    tournaments.find((t) => t.id === activeTournamentId) || tournaments[0];
   const t = translations[language];
   const currentYear = new Date().getFullYear();
 
@@ -207,7 +209,10 @@ function App() {
   };
 
   const createNewTournament = () => {
-    const newId = Math.max(...tournaments.map((t) => t.id)) + 1;
+    const newId =
+      tournaments.length > 0
+        ? Math.max(...tournaments.map((t) => t.id)) + 1
+        : 1;
     const newTournament = {
       id: newId,
       name: `Tournament ${newId}`,
@@ -227,9 +232,12 @@ function App() {
   const deleteTournament = (id) => {
     if (tournaments.length === 1)
       return alert("Cannot delete the last tournament");
-    setTournaments((prev) => prev.filter((t) => t.id !== id));
+
+    const filtered = tournaments.filter((t) => t.id !== id);
+    setTournaments(filtered);
+
     if (activeTournamentId === id) {
-      setActiveTournamentId(tournaments.find((t) => t.id !== id).id);
+      setActiveTournamentId(filtered[0].id);
     }
   };
 
@@ -247,13 +255,12 @@ function App() {
   };
 
   const openParticipantsEditor = () => {
-    // Initialize from participantsList if available, otherwise from participants string
     if (
-      activeTournament.participantsList &&
+      activeTournament?.participantsList &&
       activeTournament.participantsList.length > 0
     ) {
       setTempParticipantsList([...activeTournament.participantsList]);
-    } else if (activeTournament.participants) {
+    } else if (activeTournament?.participants) {
       const names = activeTournament.participants
         .split("\n")
         .filter((n) => n.trim());
@@ -297,7 +304,8 @@ function App() {
 
   const MATCH_HEIGHT = 110;
   const GAP_ROUND_0 = 20;
-  const champion = activeTournament.bracket
+
+  const champion = activeTournament?.bracket
     ? activeTournament.bracket.rounds[
         activeTournament.bracket.rounds.length - 1
       ][0]?.winner
@@ -310,7 +318,6 @@ function App() {
     return `Round ${roundIdx + 1}`;
   };
 
-  // New function to check if two participants are from the same club
   const areFromSameClub = (p1, p2, participantsList) => {
     const participant1 = participantsList.find((p) => p.name === p1);
     const participant2 = participantsList.find((p) => p.name === p2);
@@ -325,14 +332,12 @@ function App() {
     );
   };
 
-  // Modified shuffle function with club constraint
   const shuffleWithClubConstraint = (
     array,
     participantsList,
     avoidSameClub,
   ) => {
     if (!avoidSameClub || !participantsList || participantsList.length === 0) {
-      // Standard shuffle
       const shuffled = [...array];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -341,7 +346,6 @@ function App() {
       return shuffled;
     }
 
-    // Try to create first round pairings that avoid same club
     let attempts = 0;
     const maxAttempts = 100;
 
@@ -352,7 +356,6 @@ function App() {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
 
-      // Check first round pairings (pairs of 2)
       let hasConflict = false;
       for (let i = 0; i < shuffled.length; i += 2) {
         if (i + 1 < shuffled.length) {
@@ -369,20 +372,10 @@ function App() {
         }
       }
 
-      if (!hasConflict) {
-        return shuffled;
-      }
-
+      if (!hasConflict) return shuffled;
       attempts++;
     }
 
-    // If we couldn't find a perfect arrangement, return the last shuffle
-    // and optionally warn the user
-    console.warn(
-      "Could not avoid all same-club matchups in first round after",
-      maxAttempts,
-      "attempts",
-    );
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -395,6 +388,7 @@ function App() {
     const lines = activeTournament.participants
       .split("\n")
       .filter((x) => x.trim());
+
     if (lines.length < 2)
       return alert(
         language === "fr"
@@ -402,28 +396,44 @@ function App() {
           : "At least 2 participants required",
       );
 
+    // Get the selected tournament size
     const size = activeTournament.tournamentSize;
-    let pool = [...lines];
 
+    // Get finalists (they'll be placed at specific positions)
     const f1 = activeTournament.finalist1?.trim();
     const f2 = activeTournament.finalist2?.trim();
+
+    // Build the pool: start with all participants, then remove finalists
+    let pool = [...lines];
     if (f1) pool = pool.filter((p) => p !== f1);
     if (f2) pool = pool.filter((p) => p !== f2);
 
-    // Use the new shuffle function with club constraint
+    // Calculate how many slots we need to fill (excluding finalist positions)
+    const finalistCount = (f1 ? 1 : 0) + (f2 ? 1 : 0);
+    const slotsToFill = size - finalistCount;
+
+    // Limit the pool to fit the available slots
+    pool = pool.slice(0, slotsToFill);
+
+    // Shuffle the pool
     const shuffled = shuffleWithClubConstraint(
       pool,
       activeTournament.participantsList || [],
       activeTournament.avoidSameClubFirstRound,
     );
 
+    // Build final list with finalists at top and bottom
     const finalList = [];
     if (f1) finalList.push(f1);
     finalList.push(...shuffled);
     if (f2) finalList.push(f2);
 
-    while (finalList.length < size) finalList.push("BYE");
+    // Pad with BYEs to reach the exact size
+    while (finalList.length < size) {
+      finalList.push("BYE");
+    }
 
+    // Create first round matches
     const firstRound = [];
     for (let i = 0; i < finalList.length; i += 2) {
       firstRound.push({
@@ -434,6 +444,7 @@ function App() {
       });
     }
 
+    // Build subsequent rounds
     const rounds = [firstRound];
     let currentRound = firstRound;
     let roundIdx = 1;
@@ -483,7 +494,7 @@ function App() {
   };
 
   const exportToCSV = () => {
-    if (!activeTournament.bracket) return;
+    if (!activeTournament?.bracket) return;
     let csv = "Round,Match,Player 1,Player 2,Winner\n";
     activeTournament.bracket.rounds.forEach((round, rIdx) => {
       round.forEach((match, mIdx) => {
@@ -500,7 +511,7 @@ function App() {
   };
 
   const exportToPDF = async () => {
-    if (!activeTournament.bracket) return;
+    if (!activeTournament?.bracket) return;
 
     try {
       await import(
@@ -514,7 +525,6 @@ function App() {
         format: "a4",
       });
 
-      // Configuration
       const MATCH_BOX_WIDTH = 50;
       const MATCH_BOX_HEIGHT = 20;
       const ROUND_SPACING = 65;
@@ -623,18 +633,14 @@ function App() {
       try {
         const content = event.target.result;
 
-        // Handle JSON files (full tournament data or participants list)
         if (fileName.endsWith(".json")) {
           const imported = JSON.parse(content);
 
-          // Check if it's a full tournament export
           if (Array.isArray(imported)) {
             setTournaments(imported);
             setActiveTournamentId(imported[0]?.id || 1);
             alert("Tournament data imported successfully!");
-          }
-          // Check if it's a participants list with clubs
-          else if (Array.isArray(imported.participants)) {
+          } else if (Array.isArray(imported.participants)) {
             const participantsList = imported.participants;
             const participantsString = participantsList
               .map((p) => p.name)
@@ -647,15 +653,11 @@ function App() {
           } else {
             alert("Invalid JSON format");
           }
-        }
-
-        // Handle CSV files (name,club format)
-        else if (fileName.endsWith(".csv")) {
+        } else if (fileName.endsWith(".csv")) {
           const lines = content.split("\n").filter((line) => line.trim());
           const participantsList = [];
 
           lines.forEach((line, index) => {
-            // Skip header if it exists
             if (
               index === 0 &&
               (line.toLowerCase().includes("name") ||
@@ -685,23 +687,18 @@ function App() {
           } else {
             alert("No valid participants found in CSV");
           }
-        }
-
-        // Handle TXT files (simple name list or name|club format)
-        else if (fileName.endsWith(".txt")) {
+        } else if (fileName.endsWith(".txt")) {
           const lines = content.split("\n").filter((line) => line.trim());
           const participantsList = [];
 
           lines.forEach((line) => {
             if (line.includes("|")) {
-              // Format: name|club
               const parts = line.split("|").map((p) => p.trim());
               participantsList.push({
                 name: parts[0],
                 club: parts[1] || "",
               });
             } else {
-              // Format: just name
               participantsList.push({
                 name: line.trim(),
                 club: "",
@@ -729,11 +726,10 @@ function App() {
     };
 
     reader.readAsText(file);
-    e.target.value = ""; // Reset input
+    e.target.value = "";
   };
 
   const exportParticipantsTemplate = () => {
-    // Create a sample template file
     const template = {
       participants: [
         { name: "John Doe", club: "Club A" },
@@ -763,6 +759,8 @@ function App() {
     a.click();
   };
 
+  if (!activeTournament) return <div className="p-10">Loading...</div>;
+
   return (
     <>
       <div
@@ -771,8 +769,8 @@ function App() {
         <nav
           className={`border-b backdrop-blur-lg sticky top-0 z-50 ${darkMode ? "bg-[#050a18]/90 border-slate-800" : "bg-white/90 border-slate-200"}`}
         >
-          <div className="container mx-auto px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-6">
+          <div className="container mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 md:gap-6">
               <h1 className="text-2xl font-black tracking-tight">
                 {t.title}
                 <span className="text-indigo-500">.</span>
@@ -787,7 +785,7 @@ function App() {
                 </button>
                 {showTournamentMenu && (
                   <div
-                    className={`absolute top-full mt-2 left-0 w-64 rounded-xl border shadow-xl overflow-hidden ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+                    className={`absolute top-full mt-2 left-0 w-64 rounded-xl border shadow-xl overflow-hidden z-[100] ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
                   >
                     <div className="max-h-64 overflow-y-auto">
                       {tournaments.map((tour) => (
@@ -850,7 +848,7 @@ function App() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -890,7 +888,6 @@ function App() {
               <p className="opacity-60 text-sm">{activeTournament.name}</p>
             </div>
 
-            {/* Participants Editor Modal */}
             {showParticipantsEditor && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                 <div
@@ -973,12 +970,12 @@ function App() {
             <div
               className={`rounded-3xl border p-8 mb-8 ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <label className="flex items-center gap-2 text-sm font-bold opacity-60">
                   <Users size={16} />
                   {t.participants}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1009,7 +1006,7 @@ function App() {
                 placeholder="Enter participants (one per line) or use Import/Edit buttons"
                 className={`w-full h-48 px-6 py-4 rounded-2xl border resize-none font-mono text-sm ${darkMode ? "bg-slate-800 border-slate-700 placeholder:text-slate-600" : "bg-slate-50 border-slate-300 placeholder:text-slate-400"}`}
               />
-              <div className="mt-4 flex justify-between items-center">
+              <div className="mt-4 flex flex-wrap justify-between items-center gap-2">
                 <div className="text-xs opacity-50">
                   {
                     activeTournament.participants
@@ -1039,10 +1036,13 @@ function App() {
                   {t.size}
                 </label>
                 <select
-                  value={activeTournament.tournamentSize}
-                  onChange={(e) =>
-                    updateTournament({ tournamentSize: +e.target.value })
-                  }
+                  key={`size-${activeTournament?.id}-${activeTournament?.tournamentSize}`}
+                  value={activeTournament?.tournamentSize || 16}
+                  onChange={(e) => {
+                    const newSize = parseInt(e.target.value, 10);
+                    console.log("Changing size to:", newSize);
+                    updateTournament({ tournamentSize: newSize });
+                  }}
                   className={`w-full px-5 py-3 rounded-xl border font-bold ${darkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-300"}`}
                 >
                   {[4, 8, 16, 32, 64].map((s) => (
@@ -1114,7 +1114,7 @@ function App() {
           </section>
         ) : (
           <section className="max-w-full overflow-x-auto pb-32 no-scrollbar">
-            <div className="flex items-center justify-between mb-10 px-4">
+            <div className="flex flex-wrap items-center justify-between mb-10 px-4 gap-4">
               <button
                 onClick={() => updateTournament({ bracket: null })}
                 className="flex items-center gap-2 text-[11px] font-black uppercase opacity-50 hover:opacity-100"
@@ -1264,7 +1264,7 @@ function App() {
                 © {currentYear} Wassim Bakir. All rights reserved.
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}

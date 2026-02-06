@@ -6,11 +6,11 @@ A modern, multilingual tournament bracket generator built with React and Vite. C
 
 ## Highlights
 - Manage multiple tournaments (create, switch, rename, delete) — persisted in localStorage
-- Participant import from .csv/.txt
-- Export bracket/results as PDF, CSV and XLSX
+- Participant import from .csv/.txt/.json
+- Export bracket/results as PDF, CSV
 - Finalist placement (force two players to be in opposite halves)
 - Interactive bracket: click participant to advance winners
-- Sizes available in the UI: 8, 16, 32, 64, 128
+- Sizes available in the UI: 4, 8, 16, 32, 64
 - Languages: en, fr, es, ar (RTL support for Arabic)
 - Dark mode and fullscreen toggles
 - Built with React, Vite, Tailwind CSS and Lucide icons
@@ -24,7 +24,7 @@ A modern, multilingual tournament bracket generator built with React and Vite. C
 - Arabic (AR) — العربية (with RTL support)
 
 ### 🏆 Tournament Management
-- Support for tournament sizes: 8, 16, 32, 64, and 128 participants (powers of two)
+- Support for tournament sizes: 4, 8, 16, 32 and 64 participants (powers of two)
 - Automatic bracket generation with randomized seeding
 - Smart BYE handling for incomplete brackets
 - Click-to-advance winner selection and real-time progression
@@ -32,8 +32,8 @@ A modern, multilingual tournament bracket generator built with React and Vite. C
 
 ### 🎯 Advanced Features
 - Finalist Placement — Pre-define two finalists so they are placed in opposite halves and can only meet in the final
-- Import Participants — Import participants from .csv or .txt files (one name per line or comma-separated)
-- Export Results — Export bracket/results as PDF (printable), CSV, or XLSX (.xls HTML table)
+- Import Participants — Import participants from .csv, .txt or .json files (one name and club per line, name and club separated by a comma)
+- Export Results — Export bracket/results as PDF (printable) or CSV.
 - Dark Mode — Toggle between light and dark themes
 - Fullscreen Mode — Immersive viewing experience
 - Input validation and duplicate handling
@@ -104,11 +104,11 @@ Built files will be in the `dist/` directory.
 
 ### Preparing Participants
 - Add participant names in the textarea (one name per line).
-- Or import a .csv/.txt file (uses the first column or one name per line).
+- Or import a .csv/.txt/,json file (uses the first column or one name and club per line).
 - Optionally set two finalists (Finalist 1 and Finalist 2) — when both are set they will be placed in opposite halves.
 
 ### Generating the Bracket
-- Choose a tournament size (8, 16, 32, 64, 128).
+- Choose a tournament size (4, 8, 16, 32, 64).
 - Click "Generate" to build the bracket.
 - BYE entries are auto-filled to reach the chosen size.
 - Initial BYE matches automatically resolve (the non-BYE player advances).
@@ -118,7 +118,6 @@ Built files will be in the `dist/` directory.
 - Export the bracket/results via the Export menu:
   - PDF — opens a printable view (use Print → Save as PDF)
   - CSV — downloads a CSV listing Round, Match, Player 1, Player 2, Winner
-  - XLSX — downloads an .xls (HTML table) for spreadsheet programs
 - Click the Refresh button to reset the bracket (participants remain).
 
 ## Project Structure
